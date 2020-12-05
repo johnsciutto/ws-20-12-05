@@ -53,11 +53,22 @@ const buscarNoticiaPorId = async (id) => {
   return resultado;
 }
 
+const cors = (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Access-Control-Allow-Credentials', true)
+  res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+  next()
+}
+
+app.use(cors)
+
 const validarToken = (req, res, next) => {
 
-  const { _auth } = req.cookies 
+  const { token } = req.query 
 
-  jwt.verify(_auth, JWT_SECRET, (error, data) => {
+  jwt.verify(token, JWT_SECRET, (error, data) => {
 
       if( error ){
           res.end("ERROR: Token expirado o inválido")
@@ -83,7 +94,7 @@ app.get('/actualizar', async (req, res) => {
       const image = enclosure ? enclosure[0].$.url : '';
       const noticiaLimpia = {
         title: title[0],
-        link: link[0],
+        source: link[0],
         description: description[0],
         date: date[0],
         image,
@@ -113,13 +124,6 @@ app.listen(PORT, () => console.log(`Listening on port ${PORT}...`));
 app.get('/auth', (req, res) => {
   const token = jwt.sign({ 'user' : 'silvioEANT', 'email' : 'silvio@eant.com', expiresIn : 60 * 60 }, JWT_SECRET)
 
-  res.cookie("_auth", token, {
-    expires : new Date( Date.now() + 1000 * 60 * 60 * 3),
-    httpOnly : true,
-    sameSite : 'Lax',
-    secure : false
-  })
-
-  return res.json({ auth : true })
+  return res.json(token)
 
 })
