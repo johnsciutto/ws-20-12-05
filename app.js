@@ -25,6 +25,7 @@ const subirNoticiasADB = async (arrDeNoticias) => {
   return resultado;
 }
 
+
 const buscarNoticiasEnDB = async () => {
   const client = new MongoClient(DB_URL, { useUnifiedTopology: true, useNewUrlParser: true })
   await client.connect();
@@ -33,6 +34,20 @@ const buscarNoticiasEnDB = async () => {
   const resultado = await collection.find({}).toArray();
   await client.close()
   return resultado;
+}
+
+const buscarNoticiaPorId = async (id) => {
+  const client = new MongoClient(DB_URL, { useUnifiedTopology: true, useNewUrlParser: true })
+  await client.connect();
+  const database = await client.db('Catalogo');
+  const collection = await database.collection('noticias');
+  const resultado = await collection.find({ "_id": ObjectId(id) }).toArray();
+  await client.close()
+  return resultado;
+}
+
+const validarToken = () => {
+
 }
 
 app.get('/actualizar', async (req, res) => {
@@ -62,15 +77,14 @@ app.get('/actualizar', async (req, res) => {
   
 });
 
-app.get('/noticias', async (req, res) => {
-
+app.get('/noticias', validarToken, async (req, res) => {
   const datos = await buscarNoticiasEnDB();
-
   res.json(datos)
-})
+});
 
-app.get('/noticias/:id', (req, res) => {
-  res.send(`Working Server on port ${PORT}.`);
+app.get('/noticias/:id', async (req, res) => {
+  const resutado = await buscarNoticiaPorId(req.params.id);
+  res.json(resutado);
 });
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}...`));

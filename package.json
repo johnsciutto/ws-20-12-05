@@ -19,7 +19,9 @@
   "homepage": "https://github.com/johnsciutto/ws-20-12-05#readme",
   "dependencies": {
     "axios": "^0.21.0",
+    "cookie-parser": "^1.4.5",
     "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
     "mongodb": "^3.6.3",
     "xml2js": "^0.4.23"
   },
