@@ -2,9 +2,13 @@ const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const axios = require('axios');
 const xml2js = require('xml2js').parseString;
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 
 const app = express();
-const { DB_URL } = process.env;
+app.use(cookieParser())
+
+const { DB_URL, JWT_SECRET } = process.env;
 
 const PORT = process.env.PORT || 3000;
 
@@ -27,8 +31,11 @@ const subirNoticiasADB = async (arrDeNoticias) => {
 
 
 const buscarNoticiasEnDB = async () => {
-  const client = new MongoClient(DB_URL, { useUnifiedTopology: true, useNewUrlParser: true })
-  await client.connect();
+  //const client = new MongoClient(DB_URL, { useUnifiedTopology: true, useNewUrlParser: true })
+  //await client.connect();
+  
+  const client = await MongoClient.connect( DB_URL, { useUnifiedTopology : true } ) 
+
   const database = await client.db('Catalogo');
   const collection = await database.collection('noticias');
   const resultado = await collection.find({}).toArray();
@@ -46,7 +53,21 @@ const buscarNoticiaPorId = async (id) => {
   return resultado;
 }
 
-const validarToken = () => {
+const validarToken = (req, res, next) => {
+
+  const { _auth } = req.cookies 
+
+  jwt.verify(_auth, JWT_SECRET, (error, data) => {
+
+      if( error ){
+          res.end("ERROR: Token expirado o inválido")
+      } else {
+          next()
+      }
+
+  })
+
+  //console.log(req.cookies)
 
 }
 
@@ -82,9 +103,23 @@ app.get('/noticias', validarToken, async (req, res) => {
   res.json(datos)
 });
 
-app.get('/noticias/:id', async (req, res) => {
+app.get('/noticias/:id', validarToken, async (req, res) => {
   const resutado = await buscarNoticiaPorId(req.params.id);
   res.json(resutado);
 });
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}...`));
+
+app.get('/auth', (req, res) => {
+  const token = jwt.sign({ 'user' : 'silvioEANT', 'email' : 'silvio@eant.com', expiresIn : 60 * 60 }, JWT_SECRET)
+
+  res.cookie("_auth", token, {
+    expires : new Date( Date.now() + 1000 * 60 * 60 * 3),
+    httpOnly : true,
+    sameSite : 'Lax',
+    secure : false
+  })
+
+  return res.json({ auth : true })
+
+})
